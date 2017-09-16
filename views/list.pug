@@ -1,0 +1,40 @@
+extend layout
+
+block content
+  div#minirefresh(class=['container', 'minirefresh-wrap'])
+    div#content(class=['content', 'minirefresh-scroll'])
+      for movie, index in cards
+        div.card(class=[index % 2 ? 'even' : 'odd'])
+          div.basic-info
+            div.poster
+              img(src=movie.images.small)
+            div.subject
+              div.title=movie.title
+              div.genres
+                for genre, index in movie.genres
+                  if index != movie.genres.length - 1
+                    =genre + ' / '
+                  else
+                    =genre
+              div.year=movie.year
+            div.rating=movie.rating
+          div.advanced-info
+            div.summary
+              - const summarys = movie.summary.split("\n")
+              for summary in summarys
+                p=summary
+            div.play-info
+              for info, index in movie.playInfo
+                div.source
+                  div(class=['icon', `icon${info.sourceId + 1}`])
+                  div.name=info.source
+                  div.price=info.price == -1 ? '¥ ?' : '¥ ' + info.price
+    div.footer
+      div.controllers
+        i#returnHome.controller(class=['fa', 'fa-arrow-left'] aria-hidden='true')
+        i#filter.controller(class=['fa', 'fa-filter'] aria-hidden='true')
+  link(href='/lib/minirefresh/minirefresh.min.css' rel='stylesheet')
+  script(src='/lib/minirefresh/minirefresh.min.js' type='text/javascript')
+  link(href='/css/list.css' rel='stylesheet')
+  link(href='https://cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css' rel='stylesheet')
+  script(src='/js/list.js' type='text/javascript')
