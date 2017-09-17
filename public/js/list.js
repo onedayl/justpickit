@@ -53,7 +53,6 @@ const miniRefresh = new MiniRefresh({
 
         } else {
           const url = `/list?source=${sourceId}&skip=${(page + 1) * limit}&limit=${limit}&format=json`;
-          console.log(url);
           httpRequest.onreadystatechange = checkRefreshAndUpdate;
           httpRequest.open('GET', url);
           httpRequest.send();

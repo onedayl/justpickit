@@ -1,7 +1,7 @@
 extend layout
 
 block content
-  div#minirefresh(class=['container', 'minirefresh-wrap'])
+  div#minirefresh(class='minirefresh-wrap')
     div#content(class=['content', 'minirefresh-scroll'])
       for movie, index in cards
         div.card(class=[index % 2 ? 'even' : 'odd'])

@@ -1,19 +1,16 @@
 extends layout
 
 block content
-  div.container
-    div.titlebar
-      h1 Just Pick It
-    div#minirefresh(class=['content', 'minirefresh-wrap'])
-      div(class=['statistics', 'minirefresh-scroll'])
-        for val, index in sources
-          div(class=['item', `item-${index % 2 ? 'even' : 'odd'}`] data-source=index)
-            div(class=['icon', `icon${index + 1}`])
-            h2=val.name
-            div.count=val.count
-    div.footer
-      div.copyright
-        h3 © 2017 onedayl
-      div.controller
+  div#minirefresh(class=['content', 'minirefresh-wrap'])
+    div(class=['statistics', 'minirefresh-scroll'])
+      for val, index in sources
+        div(class=['item', `item-${index % 2 ? 'even' : 'odd'}`] data-source=index)
+          div(class=['icon', `icon${index + 1}`])
+          h2=val.name
+          div.count=val.count
+  div.footer
+    div.copyright
+      h3 © 2017 onedayl
+    div.controller
   link(href='/css/index.css' rel='stylesheet')
   script(src='/js/index.js' type='text/javascript')
