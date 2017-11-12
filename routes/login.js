@@ -28,5 +28,10 @@ login.post('/', (req, res) => {
   }
 });
 
+login.delete('/', (req, res) => {
+  req.session = null;
+  res.end();
+});
+
 
 module.exports = login;

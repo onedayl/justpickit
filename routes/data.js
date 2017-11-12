@@ -89,11 +89,11 @@ function collectWishes(lastWishDate, flag, start, newWishes, startTime, res) {
 
   } else if (newWishes.length === 0) {
     console.log('\n ---- No new wish ----');
-    res.end('No new wish');
+    res.end('0');
 
   } else {
     console.log(`\n ---- New Wishes: ${newWishes.length} | ${elapseTime(startTime, new Date())} ----\n`);
-    res.end('New wishes:' + newWishes.length);
+    res.end(newWishes.length.toString());
 
     let index = -1;
     let newWishesDetails = [];
