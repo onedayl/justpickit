@@ -27,12 +27,12 @@ update.addEventListener('click', (e) => {
     return false;
   } else {
     updateBtn.classList.toggle('disabled');
-    updateBtn.innerText = 'Updating...';
+    updateBtn.innerText = '...';
     const xhr = new XMLHttpRequest;
     xhr.onreadystatechange = () => {
       if (xhr.readyState == 4) {
         if (xhr.status == 200) {
-          updateBtn.innerText = `Updated(${xhr.responseText})`;
+          updateBtn.innerText = `New (${xhr.responseText}) `;
           window.setTimeout(() => {
             updateBtn.innerText = 'Update';
             updateBtn.classList.toggle('disabled');

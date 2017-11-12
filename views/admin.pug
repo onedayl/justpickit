@@ -13,7 +13,29 @@ html
       div.row(style="margin: 0;")
         div(class=['col-sm-1'])
         div(class=['col-sm-10'])
-          button#update(type='button' class=['btn', 'btn-outline-primary', 'btn-sm']) Update
+          div(style={display: 'flex', 'justify-content': 'space-between'})
+            button#update(type='button' class=['btn', 'btn-outline-primary', 'btn-ms'] style={width: '82px'}) Update
+            form.form-inline
+              label.mr-sm-2 Title
+              input(type='text' class=['form-control', 'mb-2', 'mr-sm-2', 'mb-sm-0'] name='title')
+              div.form-group(style={'margin-left': '8px'})
+                label.mr-sm-2 isFree
+                select.form-control(name='isFree' style={width: '100px', 'margin-right': '8px'})
+                  option(value='1') ~
+                  option(value='2') Y
+                  option(value='3') N
+              div.form-group(style={'margin-left': '8px'})
+                label.mr-sm-2 Platform
+                select.form-control(name='isFree' style={width: '140px'})
+                  option(value='1') ~
+                  option(value='2') QQ
+                  option(value='3') Youku
+                  option(value='4') iQiyi
+                  option(value='5') Sohu
+                  option(value='6') LeTV
+                  option(value='7') MangoTV
+                  option(value='8') PPTV
+                button#search(type='submit' class=['btn', 'btn-outline-success'] style={'margin-left': '8px'}) Search
           hr
           if ret.flag == 1
             div(style={display: 'flex', 'flex-wrap': 'wrap', 'justify-content': 'space-between', margin: '0 -10px 0 -10px'})
