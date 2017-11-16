@@ -5,6 +5,7 @@ html
     meta(name='viewport' content='width=device-width, initial-scale=1')
     title Just Pick It
     link(href='https://cdn.bootcss.com/bootstrap/4.0.0-beta/css/bootstrap.min.css' rel='stylesheet')
+    link(href='/css/admin.css' rel='stylesheet')
   body
     nav(class=['navbar', 'fixed-top', 'navbar-dark', 'bg-dark', 'justify-content-between'])
       a(href='/' class='navbar-brand') Just Pick It
@@ -14,58 +15,71 @@ html
         div(class=['col-sm-1'])
         div(class=['col-sm-10'])
           div(style={display: 'flex', 'justify-content': 'space-between'})
-            button#update(type='button' class=['btn', 'btn-outline-primary', 'btn-ms'] style={width: '82px'}) Update
-            form.form-inline
+            div
+              button#update(type='button' class=['btn', 'btn-outline-primary', 'btn-sm'] style={width: '82px'}) Update
+              button#clear(type='button' class=['btn', 'btn-outline-warning', 'btn-sm'] style={width: '82px', 'margin-left': '8px'}) Clear
+            form.form-inline(action='/admin' method='get')
               label.mr-sm-2 Title
-              input(type='text' class=['form-control', 'mb-2', 'mr-sm-2', 'mb-sm-0'] name='title')
-              div.form-group(style={'margin-left': '8px'})
+              input(type='text' class=['form-control', 'form-control-sm', 'mb-2', 'mr-sm-2', 'mb-sm-0'] name='title' value=ret.query.title style={width: '120px'})
+              div.form-group
                 label.mr-sm-2 isFree
-                select.form-control(name='isFree' style={width: '100px', 'margin-right': '8px'})
-                  option(value='1') ~
-                  option(value='2') Y
-                  option(value='3') N
-              div.form-group(style={'margin-left': '8px'})
-                label.mr-sm-2 Platform
-                select.form-control(name='isFree' style={width: '140px'})
-                  option(value='1') ~
-                  option(value='2') QQ
-                  option(value='3') Youku
-                  option(value='4') iQiyi
-                  option(value='5') Sohu
-                  option(value='6') LeTV
-                  option(value='7') MangoTV
-                  option(value='8') PPTV
-                button#search(type='submit' class=['btn', 'btn-outline-success'] style={'margin-left': '8px'}) Search
+                select(class=['form-control', 'form-control-sm'] name='is_free' style={width: '60px', 'margin-right': '8px'})
+                  each val, index in ['~', 'Y', 'N']
+                    if ret.query.is_free == index + 1
+                      option(value=index + 1 selected)=val
+                    else
+                      option(value=index + 1)=val
+              div.form-group
+                label.mr-sm-2 Source
+                select(class=['form-control', 'form-control-sm'] name='source' style={width: '80px', 'margin-right': '8px'})
+                  each val, index in ['~', 'QQ', 'Youku', 'iQiyi', 'Sohu', 'LeTV', 'MangoTV', 'PPTV']
+                    if ret.query.source == index + 1
+                      option(value=index + 1 selected)=val
+                    else
+                      option(value=index + 1)=val
+              div.form-group
+                label.mr-sm-2 Sort
+                select(class=['form-control', 'form-control-sm'] name='sort' style={width: '70px'})
+                  each val, index in ['Time', 'Rating']
+                    if ret.query.sort == index + 1
+                      option(value=index + 1 selected)=val
+                    else
+                      option(value=index + 1)=val
+              div.form-group(style={display: 'none'})
+                lable.mr-sm-2 page-item
+                input(type='text' name='p' value=ret.p ? ret.p : '1')
+              button#search(type='submit' class=['btn', 'btn-sm', 'btn-outline-success'] style={'margin-left': '8px'}) Search
           hr
           if ret.flag == 1
-            div(style={display: 'flex', 'flex-wrap': 'wrap', 'justify-content': 'space-between', margin: '0 -10px 0 -10px'})
+            div(style={display: 'flex', 'flex-wrap': 'wrap', margin: '0 -10px 0 -10px'})
               each val, index in ret.data
                 div.card(style={width: 'calc(20% - 20px)', margin: '0 10px 20px 10px'})
-                  img.card-img-top(src=val.images.large)
-                  div(style={padding: '10px'})
-                    h6=val.title
-                    small(style={color: '#9e9e9e'})
-                      each gval, gindex in val.genres
-                        if gindex != val.genres.length -1
-                          =gval + ' / '
-                        else
-                          =gval
-                    small(style={color: '#ee6373', padding: '0 10px'})=val.rating
+                  a(href=`https://movie.douban.com/subject/${val.sid}` target='_blank' style={'text-decoration': 'none'})
+                    img.card-img-top(src=val.images.large)
+                    div(style={padding: '10px'})
+                      h6=val.title
+                      small(style={color: '#9e9e9e'})
+                        each gval, gindex in val.genres
+                          if gindex != val.genres.length -1
+                            =gval + ' / '
+                          else
+                            =gval
+                      small(style={color: '#ee6373', padding: '0 10px'})=val.rating
             nav
               ul(class=['pagination', 'justify-content-center'])
                 if ret.p == 1
                   li(class=['page-item', 'disabled'])
                 else
                   li.page-item
-                    a.page-link(href='/admin?p=' + (ret.p - 1))
+                    a.page-link(href=`/admin?title=${ret.query.title}&is_free=${ret.query.is_free}&source=${ret.query.source}&sort=${ret.query.sort}&p=${parseInt(ret.p) - 1}`)
                       span &laquo;
                       span.sr-only Previous
                 h6(style={padding: '0 20px', height: '38px', 'line-height': '38px', color: '#9e9e9e'})= ret.p + ' / ' + ret.total
-                if ret.p == ret.total
+                if ret.p >= ret.total
                   li(class=['page-item', 'disabled'])
                 else
                   li.page-item
-                    a.page-link(href='/admin?p=' + (parseInt(ret.p) + 1))
+                    a.page-link(href=`/admin?title=${ret.query.title}&is_free=${ret.query.is_free}&source=${ret.query.source}&sort=${ret.query.sort}&p=${parseInt(ret.p) + 1}`)
                       span &raquo;
                       sapn.sr-only Next
         div(class=['col-sm-1'])

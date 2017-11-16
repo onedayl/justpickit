@@ -16,13 +16,57 @@ admin.get('/', (req, res) => {
     if (reqUsername == settings.user.username) {
       MongoClient.connect(dbUrl, (err, db) => {
         if (!err) {
+          const title = req.query.title == undefined ? '' : req.query.title.trim();
+          const isFree = req.query.is_free || 1;
+          const source = req.query.source || 1;
+          const sortId = req.query.sort || 1;
+
+          const query = {};
+          const sort = {};
+
+          if (title) {
+            const regex = new RegExp(`${title}`);
+            query.title = {$regex: regex};
+          }
+
+          if (isFree == 2) {
+            query.isFree = true;
+          } else if (isFree == 3) {
+            query.isFree = false;
+          }
+
+          if (source != 1) {
+              query.playInfo = {$elemMatch: {sourceId: parseInt(source) - 1}};
+          }
+
+          if (sortId == 1) {
+            sort._id = -1;
+          } else {
+            sort.rating = -1;
+          }
+
+
           const p = req.query.p || 1;
           const skip = ( p - 1) * 5;
-          const total = db.collection('movieWish').find().count((err, total) => {
-            const cursor = db.collection('movieWish').find().sort({"_id": -1}).skip(skip).limit(5);
-            cursor.toArray((err, docs) => {
+          const cursor = db.collection('movieWish').find(query);
+
+          cursor.count((err, total) => {
+            cursor.sort(sort).skip(skip).limit(5).toArray((err, docs) => {
               if (!err) {
-                res.render('admin', {ret: {flag: 1, data: docs, p: p, total: Math.ceil(total / 5)}});
+                res.render('admin', {
+                  ret: {
+                    flag: 1,
+                    data: docs,
+                    p: p,
+                    total: Math.ceil(total / 5),
+                    query: {
+                      title: title,
+                      is_free: isFree,
+                      source: source,
+                      sort: sortId
+                    }
+                  }
+                });
               }
             })
           });

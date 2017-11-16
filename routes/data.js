@@ -13,6 +13,7 @@ const data = express.Router();
 // Settings
 const settings = JSON.parse(fs.readFileSync(path.join(__dirname, '../settings.json'), 'utf8'));
 const wishUrlPrefix = settings.url.wish;
+const collectUrlPrefix = settings.url.collect;
 const detailsUrlPrefix = settings.url.details;
 const subjectUrlPrefix = settings.url.subject;
 const dbUrl = `mongodb://${settings.host}:27017/${settings.database}`;
@@ -22,84 +23,159 @@ const reForSid = /list(\d+)/;
 const reForNumber = /(\d+)/;
 
 
-data.put('/', (req, res, next) => {
-
+data.use((req, res, next) => {
   MongoClient.connect(dbUrl, (err, db) => {
-    assert.equal(err, null, '\n #### Connect Database Fails! ####\n');
-    console.log('\n ---- Connect Database Success ----');
-    console.log('\n ---- Start Collecting New Wishes... ----');
+    assert.equal(err, null, '# Connect Database Fails!');
+    console.log('# Start Collecting @ ' + new Date().toLocaleString());
 
-    const cursor = db.collection('movieWish').find().sort({"_id": -1}).limit(1);
-    let lastWishDate = '';
-    let flag = true;
-    let start = -30;
-    let newWishes = [];
+    const reqPath = req.path.toLowerCase();
+    const reqMethod = req.method.toLowerCase();
+
+    let collectionName;
+
+    if (reqPath == '/wish' && reqMethod == 'put') {
+      collectionName = 'movieWish';
+      res.locals.type = 0;
+    } else if (reqPath == '/collect' && reqMethod == 'delete') {
+      collectionName = 'movieCollect';
+      res.locals.type = 1;
+    } else {
+      next();
+    }
+
+    const cursor = db.collection(collectionName).find().sort({_id: -1}).limit(1);
+    let lastDate;
 
     cursor.nextObject((err, obj) => {
-      lastWishDate = obj === null ? '1970-01-01' : obj.wishDate;
-      console.log('\n ---- lastWishDate: ' + lastWishDate);
-      db.close();
+      if (!err) {
+        lastDate = obj === null ? '1970-01-01' : obj.insertDate;
+        console.log('# lastDate: ' + lastDate + '\n');
+        db.close();
 
-      collectWishes(lastWishDate, flag, start, newWishes, new Date(), res);
+        res.locals.lastDate = lastDate;
+        res.locals.flag = true;
+        res.locals.newArr = [];
+        res.locals.urlPrefix = res.locals.type == 0 ? wishUrlPrefix : collectUrlPrefix;
+        const findPagesUrl = res.locals.urlPrefix + '0';
+
+        findPages(findPagesUrl, res);
+      }
     });
-  });
+  })
+});
+
+// 404 route
+data.use((req, res) => {
+  res.end(`You are in the wrong place.`);
 });
 
 
-function collectWishes(lastWishDate, flag, start, newWishes, startTime, res) {
+function findPages(url, res) {
 
-  if (flag) {
-    start += 30;
-    console.log('\n ---- Collecting from: ' + start);
-    const url = wishUrlPrefix + start.toString();
+  superagent.get(url)
+    .end((err, html) => {
+      assert.equal(err, null, 'superagent fails!');
+      const $ = cheerio.load(html.text);
+
+      const info = $("#db-usr-profile")[0].children[3].children[1].children[0].data;
+      const total = parseInt(/\d+/.exec(info)[0]);
+
+      if (total) {
+        const pages = Math.ceil(total / 30);
+        collectNewItems(pages, 1, res);
+
+      } else {
+        res.end('0');
+      }
+    });
+}
+
+function collectNewItems(pages, page, res) {
+
+  if (res.locals.flag && page <= pages) {
+    const start = ((page - 1) * 30).toString();
+    const url = res.locals.urlPrefix + start;
+    console.log('\n\n# Collect from: ' + start + ' @ ' + new Date().toLocaleString());
 
     superagent.get(url)
       .end((err, html) => {
+
         assert.equal(err, null, 'superagent fails!');
         const $ = cheerio.load(html.text);
 
         const sids = $(".item").toArray().map(item => reForNumber.exec(item.attribs.id)[1]);
-        const dates = $('.date').toArray().map(date => date.children[0].data.trim());
+        const dates = $('.date').toArray().map(date => date.children[0].data.trim() || date.children[2].data.trim());
 
         if (dates.length !== 0) {
-          if (dates.length < 30) {
-            flag = false;
-          }
-
           for (let i = 0; i < dates.length; i++) {
-            if (isNewDate(dates[i], lastWishDate)) {
+            if (isNewDate(dates[i], res.locals.lastDate)) {
 
-              console.log(`wish: ${sids[i]} | ${dates[i]}`);
-              const newWish = {
+              console.log(`# New: ${sids[i]} | ${dates[i]}`);
+              const newItem = {
                 "sid": sids[i],
-                "wishDate": dates[i]
+                "insertDate": dates[i]
               };
-              newWishes.push(newWish);
+              res.locals.newArr.push(newItem);
 
             } else {
-              flag = false;
+              res.locals.flag = false;
               break;
             }
           }
         } else {
-          flag = false;
+          res.locals.flag = false;
         }
-        collectWishes(lastWishDate, flag, start, newWishes, startTime, res);
+
+        page += 1;
+        collectNewItems(pages, page, res);
       });
 
-  } else if (newWishes.length === 0) {
-    console.log('\n ---- No new wish ----');
+  } else if (res.locals.newArr.length === 0) {
+    console.log('# Total: 0');
     res.end('0');
 
   } else {
-    console.log(`\n ---- New Wishes: ${newWishes.length} | ${elapseTime(startTime, new Date())} ----\n`);
-    res.end(newWishes.length.toString());
+    console.log(`# Total: ${res.locals.newArr.length}`);
+    res.end(res.locals.newArr.length.toString());
 
-    let index = -1;
-    let newWishesDetails = [];
-    const sleepTime = newWishes.length > 99  ? 36000 : 2000;
+    if (res.locals.type) {
 
-    collectDetails(index, newWishes, newWishesDetails, sleepTime, new Date());
+      // insert new collects into movieCollect collection
+      MongoClient.connect(dbUrl, (err, db) => {
+        assert.equal(err, null, 'Connect database fails!');
+
+        const insertion = res.locals.newArr.reverse();
+
+        db.collection('movieCollect').insertMany(insertion, {}, (err) => {
+          assert.equal(err, null, 'Insert fails!');
+
+          console.log(`# Insert completed!`);
+        });
+
+
+        // delete wish which is in new in collect
+        const collectArr = res.locals.newArr.map(i => i.sid);
+        const deleteQuery = {sid: {$in: collectArr}};
+
+        db.collection('movieWish').deleteMany(deleteQuery, (err) => {
+          if (!err) {
+            console.log('Delete wish successed.');
+
+          } else {
+            console.log('Delete wish fail.');
+          }
+        });
+      });
+
+    } else {
+
+      let index = -1;
+      let newWishesDetails = [];
+      const sleepTime = res.locals.newArr.length > 99  ? 36000 : 2000;
+
+      console.log('\n\n# Start Collect Wish Details @ ' + new Date().toLocaleString());
+      collectDetails(index, res.locals.newArr, newWishesDetails, sleepTime, new Date());
+    }
   }
 }
 
@@ -117,20 +193,20 @@ function collectDetails(index, newWishes, newWishesDetails, sleepTime, startTime
           const details = JSON.parse(data.text);
 
           newWishesDetails.push({
-            "sid":      newWish.sid,
-            "wishDate": newWish.wishDate,
-            "title":    details.title,
-            "year":     details.year,
-            "rating":   details.rating.average,
-            "images":   details.images,
-            "genres":   details.genres,
-            "summary":  details.summary
+            "sid":        newWish.sid,
+            "insertDate": newWish.insertDate,
+            "title":      details.title,
+            "year":       details.year,
+            "rating":     details.rating.average,
+            "images":     details.images,
+            "genres":     details.genres,
+            "summary":    details.summary
           });
 
-          console.log(`Details: ${newWish.sid}|${details.title}|${index + 1}/${newWishes.length}`);
+          console.log(`# ${newWish.sid} | ${details.title} | ${index + 1}/${newWishes.length}`);
 
           if (index + 1 != newWishes.length) {
-            console.log(`---- wait ${sleepTime / 1000}s ... ----\n`);
+            console.log(`# Wait ${sleepTime / 1000}s ...`);
 
             sleep(sleepTime).then(() => {
               collectDetails(index, newWishes, newWishesDetails, sleepTime, startTime);
@@ -141,14 +217,16 @@ function collectDetails(index, newWishes, newWishesDetails, sleepTime, startTime
           }
 
         } else {
-          collectDetails(index, newWishes, newWishesDetails, sleepTime, startTime);
+          console.log('Fetch douban API error.');
         }
       });
 
   } else {
-    console.log(`\n---- collectDetails completed: ${elapseTime(startTime, new Date())} ----\n`);
+    console.log(`# Collect Details Completed: ${elapseTime(startTime, new Date())}`);
 
     index = -1;
+    console.log('\n\n# Start Collect Subject @ ' + new Date().toLocaleString());
+
     collectSubject(index, newWishesDetails, new Date());
   }
 }
@@ -177,15 +255,15 @@ function collectSubject(index, newWishesDetails, startTime) {
           }
         });
 
-        console.log(`collectSubject: ${newDetails.title}|${index + 1}/${newWishesDetails.length}`);
+        console.log(`${newDetails.title} | ${index + 1}/${newWishesDetails.length}`);
 
         collectSubject(index, newWishesDetails, startTime);
       });
 
   } else {
-    console.log(`\n---- collectSubject completed: ${elapseTime(startTime, new Date())} ----`);
+    console.log(`# Collect subject completed: ${elapseTime(startTime, new Date())}`);
 
-    console.log('\n---- Start inserting ... ----');
+    console.log('\n\n# Start insert @ ' + new Date().toLocaleString());
     const insertion = newWishesDetails.reverse();
 
     MongoClient.connect(dbUrl, (err, db) => {
@@ -194,7 +272,7 @@ function collectSubject(index, newWishesDetails, startTime) {
       db.collection('movieWish').insertMany(insertion, {}, (err) => {
         assert.equal(err, null, 'Insert fails!');
 
-        console.log(`\n---- insert completed! ----`);
+        console.log(`# Insert completed!`);
         db.close();
       });
     });
@@ -202,10 +280,10 @@ function collectSubject(index, newWishesDetails, startTime) {
 }
 
 
-function isNewDate(curWishDate, lastWishDate) {
-  const curDate = new Date(curWishDate);
-  const lastDate = new Date(lastWishDate)
-  return curDate > lastDate;
+function isNewDate(curDate, lastDate) {
+  const cur = new Date(curDate);
+  const last = new Date(lastDate)
+  return cur > last;
 }
 
 
