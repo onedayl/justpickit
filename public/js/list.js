@@ -57,7 +57,7 @@ const miniRefresh = new MiniRefresh({
           minirefresh.endUpLoading(true);
 
         } else {
-          const url = `/list?is_free=${isFree}&source=${sourceId}&p=${page.toString()}&format=json`;
+          const url = `/list?is_free=${isFree}&source=${sourceId}&sort=${sortId}&p=${page.toString()}&format=json&title=${title}`;
           httpRequest.onreadystatechange = checkRefreshAndUpdate;
           httpRequest.open('GET', url);
           httpRequest.send();
@@ -119,7 +119,7 @@ applyFilterBtn.addEventListener('click', () => {
   const source = document.getElementById('source').value;
   const sort = document.getElementById('sort').value;
 
-  const url = `./list?title=${title}&is_free=${is_free}&source=${source}&sort=${sort}`;
+  const url = `./list?is_free=${is_free}&source=${source}&sort=${sort}&title=${title}`;
   window.location.href = url;
 });
 
@@ -142,7 +142,7 @@ function checkRefreshAndUpdate() {
         datas.forEach((val, key) => {
           const flag = key % 2 ? 'even' : 'odd';
           const poster = val.images.small;
-          const title = val.title;
+          const title = val.title.substr(0, 15);
           const genres = val.genres.map((v, k) => k === 0 ? v : ' / ' + v).join("");
           const year = val.year;
           const rating = val.rating;
@@ -154,7 +154,7 @@ function checkRefreshAndUpdate() {
           const ele = `<div class="basic-info"><div class="poster"><img src="${poster}"></div><div class="subject"><div class="title">${title}</div><div class="genres">${genres}</div><div class="year">${year}</div></div><div class="rating">${rating}</div></div><div class="advanced-info"><div class="summary">${summary}</div><div class="play-info">${infos}</div></div>`;
 
           const cardItem = document.createElement('div');
-          cardItem.className = `card ${flag}`;
+          cardItem.className = `mycard ${flag}`;
           cardItem.innerHTML = ele;
           cardItem.addEventListener('click', showMore)
 

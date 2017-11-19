@@ -11,8 +11,8 @@ const list = express.Router();
 list.get('/', (req, res) => {
   const format  = req.query.format || 'html';
   const search = req._parsedOriginalUrl.search || '';
-  const host = req.headers.host;
-  const url = search == '' ? `${host}/data` : `${host}/data${search}`;
+  const host = req.headers.host ? req.headers.host + '/' : req.headers.referer;
+  const url = search == '' ? `${host}data` : `${host}data${search}`;
 
   superagent
   .get(url)

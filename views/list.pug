@@ -46,7 +46,8 @@ block content
             div.poster
               img(src=movie.images.small)
             div.subject
-              div.title=movie.title
+              - const subTitle = movie.title.substr(0, 15);
+              div.title=subTitle
               div.genres
                 for genre, index in movie.genres
                   if index != movie.genres.length - 1
@@ -74,6 +75,6 @@ block content
   link(href='/lib/minirefresh/minirefresh.min.css' rel='stylesheet')
   script(src='/lib/minirefresh/minirefresh.min.js' type='text/javascript')
   link(href='/css/list.css' rel='stylesheet')
-  link(href='https://cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css' rel='stylesheet')
-  link(href='https://cdn.bootcss.com/bootstrap/4.0.0-beta/css/bootstrap.min.css' rel='stylesheet')
+  link(href='https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css' rel='stylesheet')
+  link(href='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css' rel='stylesheet')
   script(src='/js/list.js' type='text/javascript')
