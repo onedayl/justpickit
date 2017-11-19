@@ -16,6 +16,7 @@ const reForNumber = /(\d+)/;
 
 data.get('/', (req, res) => {
   const settings = res.locals.settings;
+  sourcesSetting = settings.sources;
   const dbUrl = `mongodb://${settings.host}:27017/${settings.database}`;
 
   MongoClient.connect(dbUrl, (err, db) => {
@@ -307,12 +308,12 @@ function collectDetails(index, res, newWishesDetails, sleepTime, startTime) {
     index = -1;
     console.log('\n\n# Start Collect Subject @ ' + new Date().toLocaleString());
 
-    collectSubject(res, index, newWishesDetails, new Date());
+    collectSubject(res, index, newWishesDetails, new Date(), res);
   }
 }
 
 
-function collectSubject(res, index, newWishesDetails, startTime) {
+function collectSubject(res, index, newWishesDetails, startTime, res) {
 
   if (index < newWishesDetails.length - 1) {
     index += 1;
@@ -331,13 +332,14 @@ function collectSubject(res, index, newWishesDetails, startTime) {
         newDetails.playInfo = buyPrices.map((item, index) => {
           return {
             "source": playSources[index],
+            "sourceId": getSourceId(playSources[index], res.locals.settings.sources),
             "price": item == '免费' ? 0 : cleanPrice(item)
           }
         });
 
         console.log(`${newDetails.title} | ${index + 1}/${newWishesDetails.length}`);
 
-        collectSubject(res, index, newWishesDetails, startTime);
+        collectSubject(res, index, newWishesDetails, startTime, res);
       });
 
   } else {
@@ -395,5 +397,8 @@ function cleanPrice(price) {
   return match == null ? -1 : parseInt(match[1], 10);
 }
 
+function getSourceId(name, sources) {
+  return sources.indexOf(name);
+}
 
 module.exports = data;

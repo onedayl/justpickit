@@ -64,7 +64,7 @@ block content
             div.play-info
               for info, index in movie.playInfo
                 div.source
-                  div(class=['icon', `icon${info.sourceId + 1}`])
+                  div(class=['icon', `icon${parseInt(info.sourceId) + 1}`])
                   div.name=info.source
                   div.price=info.price == -1 ? '¥ ?' : '¥ ' + info.price
     div.footer
