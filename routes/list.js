@@ -11,7 +11,7 @@ const list = express.Router();
 list.get('/', (req, res) => {
   const format  = req.query.format || 'html';
   const search = req._parsedOriginalUrl.search || '';
-  const host = req.headers.host || /\w+\.\w+\.\w+/.exec(req.headers.referer);
+  const host = req.headers.host || 'jpi.onedayl.com';
   const url = search == '' ? `${host}/data` : `${host}/data${search}`;
 
   superagent

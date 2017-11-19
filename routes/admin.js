@@ -14,7 +14,7 @@ admin.get('/', (req, res) => {
 
     if (reqUsername == res.locals.settings.user.username) {
       const search = req._parsedOriginalUrl.search || '';
-      const host = req.headers.host;
+      const host = req.headers.host || 'jpi.onedayl.com'
       const url = search == '' ? `${host}/data` : `${host}/data${search}`;
 
       superagent
