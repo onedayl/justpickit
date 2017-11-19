@@ -10,40 +10,115 @@ const assert = require('assert');
 // Export Modules
 const data = express.Router();
 
-// Settings
-const settings = JSON.parse(fs.readFileSync(path.join(__dirname, '../settings.json'), 'utf8'));
-const wishUrlPrefix = settings.url.wish;
-const collectUrlPrefix = settings.url.collect;
-const detailsUrlPrefix = settings.url.details;
-const subjectUrlPrefix = settings.url.subject;
-const dbUrl = `mongodb://${settings.host}:27017/${settings.database}`;
-
 // Options
 const reForSid = /list(\d+)/;
 const reForNumber = /(\d+)/;
 
+data.get('/', (req, res) => {
+  const settings = res.locals.settings;
+  const dbUrl = `mongodb://${settings.host}:27017/${settings.database}`;
 
-data.use((req, res, next) => {
+  MongoClient.connect(dbUrl, (err, db) => {
+    if (!err) {
+      const title = req.query.title == undefined ? '' : req.query.title.trim();
+      const isFree = req.query.is_free || 1;
+      const source = req.query.source || 1;
+      const sortId = req.query.sort || 1;
+
+      const query = {};
+      const sort = {};
+
+      if (title) {
+        const regex = new RegExp(`${title}`);
+        query.title = {$regex: regex};
+      }
+
+      if (isFree == 2) {
+        query.isFree = true;
+      } else if (isFree == 3) {
+        query.isFree = false;
+      }
+
+      if (source != 1) {
+        query.playInfo = {$elemMatch: {sourceId: parseInt(source) - 1}};
+      }
+
+      if (sortId == 1) {
+        sort._id = -1;
+      } else {
+        sort.rating = -1;
+      }
+
+
+      const p = req.query.p || 1;
+      const skip = ( p - 1) * 5;
+      const cursor = db.collection('movieWish').find(query);
+
+      cursor.count((err, total) => {
+        cursor.sort(sort).skip(skip).limit(5).toArray((err, docs) => {
+          if (!err) {
+            res.end(JSON.stringify({
+              flag: 1,
+              msg: 'Request successed.',
+              p: p,
+              data: docs,
+              total: total,
+              title: title,
+              is_free: isFree,
+              source: source,
+              sort: sortId
+            }));
+          } else {
+            res.end(JSON.stringify({
+              flag: 0,
+              msg: 'Cursor error.',
+            }));
+          }
+        })
+      });
+    } else {
+      res.end(JSON.stringify({
+        flag: 0,
+        msg: 'Connect database fails.',
+      }));
+    }
+  });
+});
+
+
+data.put('/wish', (req, res) => {
+  res.locals.collectionName = 'movieWish';
+  res.locals.type = 0;
+  findLastDate(res);
+});
+
+
+data.delete('/collect', (req, res) => {
+  res.locals.collectionName = 'movieCollect';
+  res.locals.type = 1;
+  findLastDate(res);
+});
+
+
+data.use((req, res) => {
+  res.end(`You are in the wrong place.`);
+});
+
+
+function findLastDate(res) {
+  const settings = res.locals.settings;
+  const collectionName = res.locals.collectionName;
+  const dbUrl = `mongodb://${settings.host}:27017/${settings.database}`;
+
   MongoClient.connect(dbUrl, (err, db) => {
     assert.equal(err, null, '# Connect Database Fails!');
     console.log('# Start Collecting @ ' + new Date().toLocaleString());
 
-    const reqPath = req.path.toLowerCase();
-    const reqMethod = req.method.toLowerCase();
+    const cursor = db.collection(collectionName)
+      .find()
+      .sort({_id: -1})
+      .limit(1);
 
-    let collectionName;
-
-    if (reqPath == '/wish' && reqMethod == 'put') {
-      collectionName = 'movieWish';
-      res.locals.type = 0;
-    } else if (reqPath == '/collect' && reqMethod == 'delete') {
-      collectionName = 'movieCollect';
-      res.locals.type = 1;
-    } else {
-      next();
-    }
-
-    const cursor = db.collection(collectionName).find().sort({_id: -1}).limit(1);
     let lastDate;
 
     cursor.nextObject((err, obj) => {
@@ -55,19 +130,14 @@ data.use((req, res, next) => {
         res.locals.lastDate = lastDate;
         res.locals.flag = true;
         res.locals.newArr = [];
-        res.locals.urlPrefix = res.locals.type == 0 ? wishUrlPrefix : collectUrlPrefix;
+        res.locals.urlPrefix = res.locals.type === 0 ? settings.url.wish : settings.url.collect;
         const findPagesUrl = res.locals.urlPrefix + '0';
 
         findPages(findPagesUrl, res);
       }
     });
   })
-});
-
-// 404 route
-data.use((req, res) => {
-  res.end(`You are in the wrong place.`);
-});
+}
 
 
 function findPages(url, res) {
@@ -141,9 +211,11 @@ function collectNewItems(pages, page, res) {
     if (res.locals.type) {
 
       // insert new collects into movieCollect collection
+      const settings = res.locals.settings;
+      const dbUrl = `mongodb://${settings.host}:27017/${settings.database}`;
+      
       MongoClient.connect(dbUrl, (err, db) => {
         assert.equal(err, null, 'Connect database fails!');
-
         const insertion = res.locals.newArr.reverse();
 
         db.collection('movieCollect').insertMany(insertion, {}, (err) => {
@@ -174,23 +246,31 @@ function collectNewItems(pages, page, res) {
       const sleepTime = res.locals.newArr.length > 99  ? 36000 : 2000;
 
       console.log('\n\n# Start Collect Wish Details @ ' + new Date().toLocaleString());
-      collectDetails(index, res.locals.newArr, newWishesDetails, sleepTime, new Date());
+      collectDetails(index, res, newWishesDetails, sleepTime, new Date());
     }
   }
 }
 
 
-function collectDetails(index, newWishes, newWishesDetails, sleepTime, startTime) {
+function collectDetails(index, res, newWishesDetails, sleepTime, startTime) {
 
+  const newWishes = res.locals.newArr;
+  
   if (index < newWishes.length - 1) {
     index += 1;
     const newWish = newWishes[index];
-    const url = detailsUrlPrefix + newWish.sid;
+    const url = res.locals.settings.url.details + newWish.sid;
+    console.log(`# ${url}`);
 
     superagent.get(url)
       .end((err, data) => {
         if (err === null) {
           const details = JSON.parse(data.text);
+
+          const fixImages = {};
+          fixImages.small = details.images.small.replace(/img3|img7/, 'img1');
+          fixImages.medium = details.images.medium.replace(/img3|img7/, 'img1');
+          fixImages.large = details.images.large.replace(/img3|img7/, 'img1');
 
           newWishesDetails.push({
             "sid":        newWish.sid,
@@ -198,7 +278,7 @@ function collectDetails(index, newWishes, newWishesDetails, sleepTime, startTime
             "title":      details.title,
             "year":       details.year,
             "rating":     details.rating.average,
-            "images":     details.images,
+            "images":     fixImages,
             "genres":     details.genres,
             "summary":    details.summary
           });
@@ -209,11 +289,11 @@ function collectDetails(index, newWishes, newWishesDetails, sleepTime, startTime
             console.log(`# Wait ${sleepTime / 1000}s ...`);
 
             sleep(sleepTime).then(() => {
-              collectDetails(index, newWishes, newWishesDetails, sleepTime, startTime);
+              collectDetails(index, res, newWishesDetails, sleepTime, startTime);
             });
 
           } else {
-            collectDetails(index, newWishes, newWishesDetails, sleepTime, startTime);
+            collectDetails(index, res, newWishesDetails, sleepTime, startTime);
           }
 
         } else {
@@ -227,17 +307,17 @@ function collectDetails(index, newWishes, newWishesDetails, sleepTime, startTime
     index = -1;
     console.log('\n\n# Start Collect Subject @ ' + new Date().toLocaleString());
 
-    collectSubject(index, newWishesDetails, new Date());
+    collectSubject(res, index, newWishesDetails, new Date());
   }
 }
 
 
-function collectSubject(index, newWishesDetails, startTime) {
+function collectSubject(res, index, newWishesDetails, startTime) {
 
   if (index < newWishesDetails.length - 1) {
     index += 1;
     const newDetails = newWishesDetails[index];
-    const url = subjectUrlPrefix + newDetails.sid.toString();
+    const url = res.locals.settings.url.subject + newDetails.sid.toString();
 
     superagent.get(url)
       .end((err, html) => {
@@ -257,7 +337,7 @@ function collectSubject(index, newWishesDetails, startTime) {
 
         console.log(`${newDetails.title} | ${index + 1}/${newWishesDetails.length}`);
 
-        collectSubject(index, newWishesDetails, startTime);
+        collectSubject(res, index, newWishesDetails, startTime);
       });
 
   } else {
@@ -265,6 +345,9 @@ function collectSubject(index, newWishesDetails, startTime) {
 
     console.log('\n\n# Start insert @ ' + new Date().toLocaleString());
     const insertion = newWishesDetails.reverse();
+
+    const settings = res.locals.settings;
+    const dbUrl = `mongodb://${settings.host}:27017/${settings.database}`;
 
     MongoClient.connect(dbUrl, (err, db) => {
       assert.equal(err, null, 'Connect database fails!');

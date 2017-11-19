@@ -3,11 +3,11 @@ extends layout
 block content
   div#minirefresh(class=['content', 'minirefresh-wrap'])
     div(class=['statistics', 'minirefresh-scroll'])
-      for val, index in sources
+      for val, index in ret
         div(class=['item', `item-${index % 2 ? 'even' : 'odd'}`] data-source=index)
           div(class=['icon', `icon${index + 1}`])
           h2=val.name
-          div.count=val.count
+          div.count=val.num
   div.footer
     div.copyright
       h3 © 2017 onedayl

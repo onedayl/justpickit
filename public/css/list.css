@@ -188,6 +188,9 @@ body {
   text-align: center;
 }
 
+.invisible {
+  visibility: hidden;
+}
 
 @media (min-width: 360px) {
   :root {
@@ -218,7 +221,7 @@ body {
     margin-top: 6rem;
   }
 
-  .card {
+  .mycard {
     position: relative;
     left: calc(50% - 400px);
     margin: 2rem 0;

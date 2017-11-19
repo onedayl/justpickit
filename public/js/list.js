@@ -1,6 +1,6 @@
 let extendopupCard = null;
 let advancedInfo = null;
-let page = 0;
+let page = 2;
 const sources = [
   "免费",
   "腾讯视频",
@@ -13,13 +13,15 @@ const sources = [
 ];
 
 const href = window.location.href;
-const match1 = /source=(\d+)/.exec(href);
-const match2 = /skip=(\d+)/.exec(href);
-const match3 = /limit=(\d+)/.exec(href);
+const match1 = /title=(.*)/.exec(href);
+const match2 = /is_free=(\d+)/.exec(href);
+const match3 = /source=(\d+)/.exec(href);
+const match4 = /sort=(\d+)/.exec(href);
 
-let sourceId = match1 === null ? '0' : match1[1];
-let skip = match2 === null ? '0' : match2[1];
-let limit = match3 === null ? '10' : match3[1];
+let title = match1 == null ? '' : match1[1].trim();
+let isFree = match2 == null ? '1' : match2[1];
+let sourceId = match3 == null ? '1' : match3[1];
+let sortId = match4 == null ? '1' : match4[1];
 
 const miniRefresh = new MiniRefresh({
     container: '#minirefresh',
@@ -44,6 +46,9 @@ const miniRefresh = new MiniRefresh({
       },
       offset: 120,
       isAuto: false,
+      toTop: {
+        isEnable: false
+      },
       callback: () => {
         httpRequest = new XMLHttpRequest();
 
@@ -52,7 +57,7 @@ const miniRefresh = new MiniRefresh({
           minirefresh.endUpLoading(true);
 
         } else {
-          const url = `/list?source=${sourceId}&skip=${(page + 1) * limit}&limit=${limit}&format=json`;
+          const url = `/list?is_free=${isFree}&source=${sourceId}&p=${page.toString()}&format=json`;
           httpRequest.onreadystatechange = checkRefreshAndUpdate;
           httpRequest.open('GET', url);
           httpRequest.send();
@@ -61,18 +66,62 @@ const miniRefresh = new MiniRefresh({
     }
 });
 
-const cards = document.querySelectorAll('.card');
+const cards = document.querySelectorAll('.mycard');
 cards.forEach(card => card.addEventListener('click', showMore));
 
 listContent= document.getElementById('content');
 upwrap = listContent.lastChild;
+listContent.addEventListener('scroll', (e) => {
+  const scrollHeight = listContent.scrollTop;
+  if (scrollHeight > 600) {
+    scrollTopBtn.classList.remove('invisible');
+  } else if (scrollHeight < 400){
+    scrollTopBtn.classList.add('invisible');
+  }
+})
 
+// 返回首页点击事件
 const returnToHome = document.getElementById('returnHome');
 returnToHome.addEventListener('click', () => {
   window.location.href = '/';
 })
 
+
+// 回到页面顶部点击事件
+const scrollTopBtn = document.getElementById('scrollTop');
+scrollTopBtn.addEventListener('click', () => {
+  miniRefresh.scrollTo(0, 300);
+});
+
+
+// 显示筛选弹出框点击事件
+const filterBtn = document.getElementById('filter');
+filterBtn.addEventListener('click', () => {
+  filterModal.classList.remove('invisible');
+});
+
 const footer = document.querySelector('.footer');
+const filterModal = document.getElementById('filter-modal');
+
+
+// 隐藏筛选弹出框点击事件
+const closeFilterBtn = document.getElementById('close-filter');
+closeFilterBtn.addEventListener('click', () => {
+  filterModal.classList.add('invisible');
+});
+
+
+// 应用筛选按钮点击事件
+const applyFilterBtn = document.getElementById('apply-filter');
+applyFilterBtn.addEventListener('click', () => {
+  const title = document.getElementById('title').value;
+  const is_free = document.getElementById('is_free').value;
+  const source = document.getElementById('source').value;
+  const sort = document.getElementById('sort').value;
+
+  const url = `./list?title=${title}&is_free=${is_free}&source=${source}&sort=${sort}`;
+  window.location.href = url;
+});
 
 function showMore() {
   extendCard = this;
@@ -87,7 +136,7 @@ function hideMore() {
 function checkRefreshAndUpdate() {
   if (httpRequest.readyState === 4) {
     if (httpRequest.status === 200) {
-      const datas = JSON.parse(httpRequest.responseText);
+      const datas = JSON.parse(httpRequest.responseText).data;
 
       if (datas.length !== 0) {
         datas.forEach((val, key) => {
@@ -112,7 +161,7 @@ function checkRefreshAndUpdate() {
           listContent.insertBefore(cardItem, upwrap);
         });
 
-        if (datas.length < limit) {
+        if (datas.length < 5) {
           miniRefresh.endUpLoading(true);
         } else {
           miniRefresh.endUpLoading(false);

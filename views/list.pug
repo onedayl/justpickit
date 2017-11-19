@@ -1,10 +1,47 @@
 extend layout
 
 block content
+  div#filter-modal.invisible(style={width: '100%', height: '100%', position: 'fixed', left: '0', 'z-index': '1000', 'background-color': '#ffffff'})
+    .row(style={'padding': '4rem 2rem'})
+      .col(class=['col-md-12', 'col-lg-6', 'col-xl-3'])
+        div#filter-form
+          form(action='/list' method='get' style={'font-size': '1.4rem'})
+            .form-group
+              label Title
+              input#title.form-control(type='text' name='title' value=ret.query.title)
+            div.form-group
+              label Free or not
+              select#is_free.form-control(name='is_free')
+                each val, index in ['~', 'Y', 'N']
+                  if ret.query.is_free == index + 1
+                    option(value=index + 1 selected)=val
+                  else
+                    option(value=index + 1)=val
+            div.form-group
+              label Source
+              select#source.form-control(name='source')
+                each val, index in ['~', 'QQ', 'Youku', 'iQiyi', 'Sohu', 'LeTV', 'MangoTV', 'PPTV']
+                  if ret.query.source == index + 1
+                    option(value=index + 1 selected)=val
+                  else
+                    option(value=index + 1)=val
+            div.form-group
+              label Sort
+              select#sort.form-control(name='sort')
+                each val, index in ['Time', 'Rating']
+                  if ret.query.sort == index + 1
+                    option(value=index + 1 selected)=val
+                  else
+                    option(value=index + 1)=val
+    div#filter-controller(style={position: 'absolute', bottom: '0', width: '100%', height: '4rem', 'background-color': 'var(--primary-color)'})
+      div.controllers
+          i#close-filter.controller(class=['fa', 'fa-times'])
+          i.controller(class=['fa', 'fa-check', 'invisible'])
+          i#apply-filter.controller(class=['fa', 'fa-check'])
   div#minirefresh(class='minirefresh-wrap')
     div#content(class=['content', 'minirefresh-scroll'])
-      for movie, index in cards
-        div.card(class=[index % 2 ? 'even' : 'odd'])
+      for movie, index in ret.data
+        div.mycard(class=[index % 2 ? 'even' : 'odd'])
           div.basic-info
             div.poster
               img(src=movie.images.small)
@@ -31,10 +68,12 @@ block content
                   div.price=info.price == -1 ? '¥ ?' : '¥ ' + info.price
     div.footer
       div.controllers
-        i#returnHome.controller(class=['fa', 'fa-arrow-left'] aria-hidden='true')
-        i#filter.controller(class=['fa', 'fa-filter'] aria-hidden='true')
+        i#returnHome.controller(class=['fa', 'fa-arrow-left'])
+        i#scrollTop.controller(class=['fa', 'fa-arrow-up', 'invisible'])
+        i#filter.controller(class=['fa', 'fa-filter'])
   link(href='/lib/minirefresh/minirefresh.min.css' rel='stylesheet')
   script(src='/lib/minirefresh/minirefresh.min.js' type='text/javascript')
   link(href='/css/list.css' rel='stylesheet')
   link(href='https://cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css' rel='stylesheet')
+  link(href='https://cdn.bootcss.com/bootstrap/4.0.0-beta/css/bootstrap.min.css' rel='stylesheet')
   script(src='/js/list.js' type='text/javascript')

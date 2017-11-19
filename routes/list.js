@@ -1,44 +1,49 @@
 // Dependencies
 const fs = require('fs');
-const path = require('path');
 const express = require('express');
+const superagent = require('superagent');
 const MongoClient = require('mongodb').MongoClient;
 const assert = require('assert');
-
-// settings
-const settings = JSON.parse(fs.readFileSync(path.join(__dirname, '../settings.json'), 'utf8'));
 
 // Export Modules
 const list = express.Router();
 
 list.get('/', (req, res) => {
-  res.sourceId = req.query.source && req.query.source <= 7 ? req.query.source : '0';
-  res.format = req.query.format ? req.query.format : 'html';
-  res.skip = req.query.skip ? parseInt(req.query.skip) : 0;
-  res.limit = req.query.limit && req.query.limit <= 30 ? parseInt(req.query.limit) : 10;
+  const format  = req.query.format || 'html';
+  const search = req._parsedOriginalUrl.search || '';
+  const host = req.headers.host;
+  const url = search == '' ? `${host}/data` : `${host}/data${search}`;
 
-  const dbUrl = `mongodb://${settings.host}:27017/${settings.database}`;
-  const sources = settings.sources;
+  superagent
+  .get(url)
+  .end((err, chunk) => {
+    if (err == null) {
+      const content = JSON.parse(chunk.text);
 
-  MongoClient.connect(dbUrl, (err, db) => {
-    assert.equal(err, null, 'Connect database fails!');
-    let query = {};
+      if (format == 'json') {
+        res.end(chunk.text);
 
-    if (res.sourceId == '0') {
-      query = {isFree: true};
-    } else {
-      const name = sources[res.sourceId];
-      query = {playInfo: {$elemMatch: {$and: [{source: name}, {price: {$ne: 0}}]}}};
-    }
-
-    const cursor = db.collection('movieWish').find(query).sort({_id: -1});
-    cursor.skip(res.skip).limit(res.limit).toArray((err, arr) => {
-      if (res.format == 'json') {
-        res.send(JSON.stringify(arr));
       } else {
-        res.render('list', {cards: arr});
+        res.render('list', {
+          ret: {
+            flag: 1,
+            data: content.data,
+            p: content.p,
+            total: Math.ceil(content.total / 5),
+            query: {
+              title: content.title,
+              is_free: content.is_free,
+              source: content.source,
+              sort: content.sort
+            }
+          }
+        });
       }
-    });
+
+    } else {
+      console.log(err.Error);
+      res.render('list', {ret: {flag: 0}});
+    }
   });
 });
 

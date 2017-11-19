@@ -27,6 +27,10 @@ app.use(cookieSession({
   secret: settings.secret,
   maxAge: 30 * 60 * 1000
 }));
+app.use((req, res, next) => {
+  res.locals.settings = settings;
+  next();
+})
 
 
 
