@@ -398,7 +398,12 @@ function cleanPrice(price) {
 }
 
 function getSourceId(name, sources) {
-  return sources.indexOf(name);
+  const index = sources.indexOf(name);
+  if(index == -1) {
+    return 0;
+  } else {
+    return index;
+  }
 }
 
 module.exports = data;

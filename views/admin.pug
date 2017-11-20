@@ -32,7 +32,7 @@ html
               div.form-group
                 label.mr-sm-2 Source
                 select(class=['form-control', 'form-control-sm'] name='source' style={width: '80px', 'margin-right': '8px'})
-                  each val, index in ['~', 'QQ', 'Youku', 'iQiyi', 'Sohu', 'LeTV', 'MangoTV', 'PPTV']
+                  each val, index in ['~', 'QQ', 'Youku', 'iQiyi', 'Sohu', 'LeTV', 'MangoTV', 'PPTV', 'bilibili']
                     if ret.query.source == index + 1
                       option(value=index + 1 selected)=val
                     else

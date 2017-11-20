@@ -20,7 +20,7 @@ block content
             div.form-group
               label Source
               select#source.form-control(name='source')
-                each val, index in ['~', 'QQ', 'Youku', 'iQiyi', 'Sohu', 'LeTV', 'MangoTV', 'PPTV']
+                each val, index in ['~', 'QQ', 'Youku', 'iQiyi', 'Sohu', 'LeTV', 'MangoTV', 'PPTV', 'bilibili']
                   if ret.query.source == index + 1
                     option(value=index + 1 selected)=val
                   else
