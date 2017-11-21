@@ -140,7 +140,7 @@ function checkRefreshAndUpdate() {
 
       if (datas.length !== 0) {
         datas.forEach((val, key) => {
-          const flag = key % 2 ? 'even' : 'odd';
+          const flag = page % 2 ? (key % 2 ? 'even' : 'odd') : (key % 2 ? 'odd' : 'even');
           const poster = val.images.small;
           const title = val.title.substr(0, 15);
           const genres = val.genres.map((v, k) => k === 0 ? v : ' / ' + v).join("");
