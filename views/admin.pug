@@ -53,7 +53,7 @@ html
           if ret.flag == 1
             div(style={display: 'flex', 'flex-wrap': 'wrap', margin: '0 -10px 0 -10px'})
               each val, index in ret.data
-                div.card(style={width: 'calc(20% - 20px)', margin: '0 10px 20px 10px'})
+                div.card(style={width: 'calc(16.66% - 20px)', 'margin': '0 10px 20px 10px'})
                   a(href=`https://movie.douban.com/subject/${val.sid}` target='_blank' style={'text-decoration': 'none'})
                     img.card-img-top(src=val.images.large)
                     div(style={padding: '10px'})

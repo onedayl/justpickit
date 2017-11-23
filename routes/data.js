@@ -6,6 +6,8 @@ const MongoClient = require('mongodb').MongoClient;
 const superagent = require('superagent');
 const cheerio = require('cheerio');
 const assert = require('assert');
+const limit = 6;
+
 
 // Export Modules
 const data = express.Router();
@@ -52,11 +54,11 @@ data.get('/', (req, res) => {
 
 
       const p = req.query.p || 1;
-      const skip = ( p - 1) * 5;
+      const skip = ( p - 1) * limit;
       const cursor = db.collection('movieWish').find(query);
 
       cursor.count((err, total) => {
-        cursor.sort(sort).skip(skip).limit(5).toArray((err, docs) => {
+        cursor.sort(sort).skip(skip).limit(limit).toArray((err, docs) => {
           if (!err) {
             res.end(JSON.stringify({
               flag: 1,
