@@ -53,7 +53,8 @@ index.get('/', (req, res) => {
           count += 1;
 
           if (count == sourcesLength) {
-            res.render('index', {ret: nums})
+            res.render('index', {ret: nums});
+            db.close();
           }
         });
     });

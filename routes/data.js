@@ -71,11 +71,13 @@ data.get('/', (req, res) => {
               source: source,
               sort: sortId
             }));
+            db.close();
           } else {
             res.end(JSON.stringify({
               flag: 0,
               msg: 'Cursor error.',
             }));
+            db.close();
           }
         })
       });
@@ -137,6 +139,9 @@ function findLastDate(res) {
         const findPagesUrl = res.locals.urlPrefix + '0';
 
         findPages(findPagesUrl, res);
+      } else {
+        res.end();
+        db.close();
       }
     });
   })
@@ -223,7 +228,7 @@ function collectNewItems(pages, page, res) {
 
         db.collection('movieCollect').insertMany(insertion, {}, (err) => {
           assert.equal(err, null, 'Insert fails!');
-
+          db.close();
           console.log(`# Insert completed!`);
         });
 
@@ -235,9 +240,10 @@ function collectNewItems(pages, page, res) {
         db.collection('movieWish').deleteMany(deleteQuery, (err) => {
           if (!err) {
             console.log('Delete wish successed.');
-
+            db.close();
           } else {
             console.log('Delete wish fail.');
+            db.close();
           }
         });
       });
